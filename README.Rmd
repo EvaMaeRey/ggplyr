@@ -22,20 +22,73 @@ ggplot2::theme_set(theme_gray(base_size = 18))
 
 https://evamaerey.github.io/mytidytuesday/2024-07-10-ggnewdata/ggnewdata.html
 
-### data_replace()
 
 ```{r}
-data_replace <- function(data) {
-  structure(list(new_data_specification = data), 
-            class = "data_replace")
+layers_wipe <- function(i = NULL) {
+
+  structure(
+    list(wipe_which = i), 
+    class = "layers_wipe"
+    )
+
 }
 
-ggplot_add.data_replace <- function(object, plot, object_name) {
+
+ggplot_add.layers_wipe <- function(object, plot, object_name) {
+  
+  if(is.null(object$wipe_which)){
+   
+    plot$layers <- list()
+     
+  }else{
+    
+  plot$layers[object$wipe_which] <- NULL
+
+  }
+  
+  plot
+  
+}
+```
+
+
+```{r}
+ggplot(mtcars) + 
+  aes(x = cyl) + 
+  geom_bar() + 
+  stat_count(geom = "point")
+
+last_plot() + 
+  layers_wipe(i = 1)
+
+last_plot() + 
+  layers_wipe()
+```
+
+
+### data_replace()
+
+```{r data_replace}
+#' @export
+data_replace <- function(data = NULL) {
+
+  structure(
+    list(new_data_specification = data), 
+    class = "df_replace"
+    )
+
+}
+
+#' @export
+
+ggplot_add.df_replace <- function(object, plot, object_name) {
   
   plot$data <- object$new_data_specification
   plot
 
-  }
+}
+
+
 ```
 
 
@@ -47,31 +100,57 @@ ggplot(mtcars) +
 
 last_plot() + 
   data_replace(data = mpg)
+
+
 ```
 
 
 ### data_filter()
 
 ```{r data_filter}
-data_filter <- function(keep, .by) {
-  structure(list(keep_specification = rlang::enquo(keep), 
+#' @export
+#' 
+library(ggplot2)
+data_filter <- function(.keep, .by) {
+  structure(list(keep_specification = rlang::enquo(.keep), 
                  by_specification = rlang::enquo(.by)), 
             class = "filterobs")
 }
 
-ggplot_add.filterobs <- function(object, plot, object_name, .by) {
+#' @export
+ggplot_add.filterobs <- function(object, plot, object_name) {
+  
+  plot$unfiltered_data <- plot$unfiltered_data %||% plot$data
   
   new_data <- dplyr::filter(plot$data, 
-                            !! object$keep_specification, 
-                            .by = !! object$by_specification)
+                            !!object$keep_specification, 
+                            .by = !!object$by_specification)
   plot$data <- new_data
   plot
 
 }
+
+data_unfilter <- function(){
+    structure(list(), 
+            class = "unfilterobs")
+  
+}
+
+
+#' @export
+ggplot_add.unfilterobs <- function(object, plot, object_name) {
+  
+  plot$data <- plot$unfiltered_data %||% plot$data
+  
+  plot
+
+}
+
 ```
 
 ```{r}
 library(ggplot2)
+
 ggplot(mtcars) + 
   aes(wt) +
   geom_density() +
@@ -79,7 +158,15 @@ ggplot(mtcars) +
 
 last_plot() +
   data_filter(cyl != 4)
+
+last_plot() + 
+  data_unfilter()
+
 ```
+
+
+
+
 
 ```{r}
 drob_funs <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-07-09/drob_funs.csv')
@@ -99,7 +186,7 @@ last_plot() +
 
 last_plot() + 
   data_filter(pkgs == "ggplot") + 
-  labs(title = "ggplot2 function used 500 or more times by @drob")
+  labs(title = "ggplot2 functions used 500 or more times by @drob")
 
 ```
 
@@ -108,22 +195,27 @@ last_plot() +
 
 
 ```{r data_slice}
+#' @export
 data_slice <- function(keep, .by) {
+  
   structure(list(keep_specification = rlang::enquo(keep), 
                  by_specification = rlang::enquo(.by)), 
-            class = "sliceobs")
+            class = "slice_obs")
+  
 }
 
-ggplot_add.sliceobs <- function(object, plot, object_name, .by) {
+#' @export
+ggplot_add.slice_obs <- function(object, plot, object_name, .by) {
   
   new_data <- dplyr::slice(plot$data, 
-                            !! object$keep_specification, 
-                            .by = !! object$by_specification)
+                           !! object$keep_specification, 
+                           .by = !! object$by_specification)
   plot$data <- new_data
   plot
 
   }
 ```
+
 
 ```{r}
 library(ggplot2)
@@ -134,39 +226,202 @@ ggplot(mtcars) +
   aes(color = factor(cyl))
 ```
 
-## data_slice_sample()
 
-```{r data_slice_sample}
-# data_slice_sample <- function(keep, .by) {
-#   structure(list(keep_specification = rlang::enquo(keep), 
-#                  by_specification = rlang::enquo(.by)), 
-#             class = "slicesampleobs")
-# }
-# 
-# ggplot_add.slicesampleobs <- function(object, plot, object_name, .by) {
-#   
-#   new_data <- dplyr::slice_sample(plot$data, ...,
-#                             !! object$keep_specification, 
-#                             .by = !! object$by_specification)
-#   plot$data <- new_data
-#   plot
-# 
-#   }
+### data_slice_max()
+
+```{r data_slice_max}
+#' @export
+data_slice_max <- function(ordered_by, n = 10, by) {
+  
+  structure(list(ordered_by_specification = rlang::enquo(ordered_by),
+                 n_specification = n, 
+                 by_specification = rlang::enquo(by)),
+            class = "slice_max_obs")
+  
+}
+
+#' @export
+ggplot_add.slice_max_obs <- function(object, plot, object_name) {
+  
+  new_data <- dplyr::slice_max(plot$data, 
+                               order_by = !! object$ordered_by_specification, 
+                               n = object$n_specification, 
+                               by = !! object$by_specification)
+  plot$data <- new_data
+  plot
+
+  }
+```
+
+```{r}
+ggplot(gapminder::gapminder %>% filter(year == 2002)) + 
+  aes(pop, interaction(country, rank(pop))) + 
+  geom_col() 
+
+last_plot() + 
+  data_slice_max(pop)
+
+last_plot() + 
+  data_slice_max(pop, n = 3)
+
+
+# ggplot(diamonds) + 
+#   aes(y = cut) + 
+#   geom_bar() + 
+#   data_slice_max(n = 3)
 ```
 
 
+## data_slice_top_summarized
+
+```{r}
+
+gapminder::gapminder |> 
+    mutate(agg = sum(pop), .by = country) |> 
+    arrange(-agg) |>
+    mutate(therank = rank(agg)) |>
+    filter(therank < 10)
+
+slice_top_summarized <- function(data, .by, value = NULL, n = 10, fun = sum){
+  
+    value_quo <- rlang::enquo(value)
+
+      if(rlang::quo_is_null(value_quo) ){
+
+      ## adding a value as 1 if there is none
+      data <- data |>
+        dplyr::mutate(value = 1)
+      
+    }else{
+      
+      data <- data |> 
+          dplyr::mutate(value = {{value}})
+        
+    }  
+    
+  data |>
+    summarise(agg = fun(.data$value), .by = {{.by}}) |> 
+    ungroup() |>
+    arrange(-agg) |> 
+    slice(1:n) |> 
+    select(-agg) |>
+    left_join(data)
+  
+}
+
+
+gapminder::gapminder |> 
+  slice_top_summarized(country, pop, n = 3) |>
+  ggplot() + 
+  aes(year, pop, group = country) + 
+  geom_line()
+
+
+tidytitanic::tidy_titanic |> 
+  # mutate(value = 1) |>
+  slice_top_summarized(class, n = 4) |>
+  ggplot() + 
+  aes(y = class) + 
+  geom_bar()
+
+
+#' @export
+data_slice_top_summarized <- function(.by, value = NULL,  n = 10, fun = sum) {
+  
+  structure(list(value_specification = rlang::enquo(value),
+                 by_specification = rlang::enquo(.by),
+                 ###########
+                 n_specification = n, 
+                 fun_specification = fun),
+            class = "data_slice_top_summarized")
+  
+}
+
+#' @export
+ggplot_add.data_slice_top_summarized <- function(object, plot, object_name) {
+  
+  plot$unfiltered_data <- plot$unfiltered_data %||% plot$data
+
+  
+  new_data <- slice_top_summarized(plot$data, 
+                               value = !! object$value_specification, 
+                               .by = !! object$by_specification,
+                               #########
+                               n = object$n_specification, 
+                               fun = object$fun_specification
+                               )
+  plot$data <- new_data
+  plot
+
+  }
+
+tidytitanic::tidy_titanic |> 
+  ggplot() + 
+  aes(y = class) + 
+  geom_bar() + 
+  data_slice_top_summarized(class, n = 2)
+
+gapminder::gapminder |> 
+  ggplot() + 
+  aes(year, pop, group = country) + 
+  geom_line() +
+  data_slice_top_summarized(country, pop, n = 5, fun = mean)
+```
+
+
+
+
+## data_slice_sample()
+
+```{r data_slice_sample}
+#' @export
+data_slice_sample <- function(n = 10, by) {
+  
+  structure(list(n_specification = n, 
+                 by_specification = rlang::enquo(by)),
+                 class = "slice_sample_obs")
+  
+}
+
+ggplot_add.slice_sample_obs <- function(object, plot, object_name) {
+  
+  new_data <- dplyr::slice_sample(plot$data, 
+                               n = object$n_specification, 
+                               by = !! object$by_specification)
+  plot$data <- new_data
+  plot
+
+  }
+
+
+
+
+```
+
+
+```{r}
+ggplot(diamonds) + 
+  aes(carat, price) + 
+  geom_point() + 
+  data_slice_sample(n = 300)
+
+last_plot() + 
+  data_slice_sample(n = 1, by = color) +
+  aes(color = color)
+```
 
 
 
 ## data_arrange()
 
 ```{r data_arrange}
+#' @export
 data_arrange <- function(arrange) {
   structure(list(arrange_specification = rlang::enquo(arrange)), 
-            class = "arrangeobs")
+            class = "arrange_obs")
 }
 
-ggplot_add.arrangeobs <- function(object, plot, object_name) {
+ggplot_add.arrange_obs <- function(object, plot, object_name) {
   
   new_data <- dplyr::arrange(plot$data, 
                             !! object$arrange_specification)
@@ -175,6 +430,8 @@ ggplot_add.arrangeobs <- function(object, plot, object_name) {
 
 }
 ```
+
+
 
 ```{r}
 library(ggplot2)
@@ -187,9 +444,15 @@ last_plot() +
   data_arrange(- cyl)
 ```
 
+
+
+
+
+
 ## data_mutate()
 
 ```{r}
+#' @export
 data_mutate <- function(.value, .by, var_name) {
   structure(list(value_specification = rlang::enquo(.value),
                  by_specification = rlang::enquo(.by),
@@ -233,9 +496,30 @@ ggplot(mtcars) +
   aes(color = wt_times_mpg)
 ```
 
+## data_split_unnest()
+
+```{r}
+data_split_unnest <- function(var_name, sep) {
+  structure(list(var_specification = rlang::enquo(var)),
+            class = "arrange_obs")
+}
+
+ggplot_add.arrange_obs <- function(object, plot, object_name) {
+
+  new_data <- dplyr::mutate(plot$data,
+                            !! object$arrange_specification)
+  plot$data <- new_data
+  plot
+
+}
+
+```
+
+
 ## last_plot_data()
 
 ```{r last_plot_data}
+#' @export
 last_plot_data <- function(){
   
   last_plot()$data
@@ -246,9 +530,109 @@ last_plot_data <- function(){
 
 ```{r}
 last_plot_data() %>% 
-  select(mpg, cyl, wt, wt_times_mpg)
+  dplyr::select(mpg, cyl, wt, wt_times_mpg)
 ```
 
+
+## data_nest
+
+```{r}
+#' @export
+data_nest <- function(.by) {
+  structure(list(by_specification = rlang::enquo(.by)),
+            class = "data_nestvar")
+  
+}
+
+ggplot_add.data_nestvar <- function(object, plot, object_name) {
+
+  
+  new_data <- tidyr::nest(plot$data, 
+                          .by = !! object$by_specification)
+    
+  plot$data <- new_data
+  plot
+
+}
+
+
+#' @export
+data_unnest <- function() {
+  structure(list(),
+            class = "data_unnestvar")
+  
+}
+
+ggplot_add.data_unnestvar <- function(object, plot, object_name) {
+
+  
+  new_data <- tidyr::unnest(plot$data, cols = "data")
+    
+  plot$data <- new_data
+  
+  plot
+
+}
+
+diamonds |>
+  tidyr::nest(.by = cut) |>
+  tidyr::unnest(cols = data)
+
+library(ggplot2)
+diamonds |>
+  ggplot() + 
+  aes(x = cut) + 
+  geom_bar()
+
+last_plot() + 
+  data_nest(.by = cut)
+
+last_plot() + 
+  data_unnest()
+
+last_plot_data()
+
+```
+
+
+
+### intercept()
+
+```{r intercept}
+#' @export
+#' 
+library(ggplot2)
+intercept <- function(plot_name = NULL) {
+
+  structure(
+    list(plot_name_specification = plot_name), 
+    class = "intercept"
+    )
+
+}
+
+ggplot_add.intercept <- function(object, plot, object_name) {
+  
+  assign(x = object$plot_name_specification, 
+         value = plot, envir = .GlobalEnv)
+  plot
+
+  }
+```
+
+```{r}
+p3 <- ggplot(cars) + intercept("p0") +
+  aes(speed, dist) + intercept("p1") +
+  geom_point()
+
+library(patchwork)
+p0 + p1 + p3
+
+```
+
+
+
+---
 
 ```{r}
 library(tidyverse)
@@ -261,9 +645,9 @@ ggplot(cars) +
   scale_y_continuous(limits = c(0,25))
 ```
 
-```{r}
+```{r, eval = F}
 last_plot() + 
-  data_filter(keep = dist > 60)
+  data_filter(dist > 60)
 
 tidytitanic::tidy_titanic |>
   ggplot() + 
@@ -279,12 +663,6 @@ last_plot() +
 last_plot() + 
   data_filter(n() > 1000, .by = age)
 ```
-
-
-
-
-
-
 
 
 
@@ -309,7 +687,7 @@ last_plot() +
   data_filter(num >= 200)
 
 last_plot() +
-  data_mutate(.value = case_when(funs == "ggplot" ~ "hello!",
+  data_mutate(.value = case_when(funs == "ggplot" ~ "GGPLOT",
                                      .default = funs), 
               var_name = "funs")
 
@@ -318,8 +696,6 @@ last_plot() +
 ```
 
 ```{r}
-
-
 data_var_update <- function(.value, .by, var_name) {
   structure(list(value_specification = rlang::enquo(.value),
                  by_specification = rlang::enquo(.by),
@@ -337,16 +713,121 @@ ggplot_add.data_var_update <- function(object, plot, object_name) {
   
   new_data[names(new_data) == object$var_name] <- new_data$.value
     
-    
   plot$data <- new_data
   plot
 
   
   }
 
+```
+
+
+## Experiment...
+
+```{r, eval = F}
+library(tidyverse)
+
+data_replace <- function(data = NULL) {
+
+  structure(
+    list(new_data_specification = data), 
+    class = "df_replace"
+    )
+
+}
+
+ggplot_add.df_replace <- function(object, plot, object_name) {
+  
+  plot$data <- object$new_data_specification
+  
+  if (is.function(new)) {
+    new <- new(plot$data)
+  }
+  
+  plot
+
+  }
+# 
+# # define wipedata method
+# ggplot_add.wipedata <- function(object, plot, object_name) {
+#   new <- object$new_data_specifiction
+#   # if (is.function(new)) {
+#   #   new <- new(plot$data)
+#   # }
+#   plot$data <- new
+#   plot
+# }
+
+# ggplot(mtcars) + 
+#   aes(cyl) + 
+#   geom_bar() + 
+#   data_replace(mpg)
+```
+
+# facet_across
+
+```{r}
+library(tidyverse)
+
+gapminder::gapminder %>% 
+  select(country, year, lifeExp) %>% 
+  pivot_wider(names_from = year, values_from = lifeExp) ->
+life_wide;
+
+head(life_wide)
+
+life_wide %>% 
+  pivot_longer(`1952`:`2007`) %>% 
+ggplot() + 
+  aes(x = value) + 
+  geom_histogram() + 
+  facet_wrap(~name)
+```
+
+```{r facet_across, eval = F}
+#' @export
+facet_across <- function(x_from) {
+
+  structure(
+    list(across_specification = rlang::enquo(x_from)), 
+    class = "facet_across"
+    )
+
+}
+
+ggplot_add.facet_across <- function(object, plot, object_name, ...) {
+  
+  plot$data <- plot$data %>% 
+    pivot_longer(!!object$across_specification, values_to = ".x")
+  
+  message("variables 'name' and 'value' have been created.")
+  
+  plot +
+    facet_wrap(~name, ncol) +
+       aes(!!!modifyList(aes(x = .x), plot$mapping))
+  
+
+}
+
+mpg %>% 
+  ggplot() +
+  facet_across(x_from = c(cty, hwy)) + 
+  geom_rug() + 
+  geom_histogram()
+
+```
+
+```{r, eval = F}
+life_wide %>% 
+  ggplot() +
+  facet_across(x_values_from = `1952`:`2007`) +
+  ggxmean::geom_x_mean() + 
+  geom_rug() + 
+  geom_density()
 
 
 ```
+
 
 # explore extension exported functions...
 
@@ -372,12 +853,18 @@ ext_exports %>%
   guides(size = "none") +
   labs(title = "Number of exported functions by author")
 
+last_plot() + 
+  data_slice_top_summarized(user)
+
 (get_theme() + last_plot()$theme) |> theme_set()
 
 last_plot() + 
   aes(id = prefix) + 
   labs(title = "Number of exported functions by function prefix")
 
+
+last_plot() + 
+  data_slice_top_summarized(prefix, n = 30)
 
 last_plot() + 
   data_filter(ind_classic_prefix) + 
@@ -603,6 +1090,9 @@ mtcars %>%
 last_plot_wipe() + 
   geom_bar(position = "fill")
 
+last_plot_wipe() + 
+  geom_bar(position = "identity")
+
 
 mtcars %>% 
   ggplot() + 
@@ -682,13 +1172,22 @@ knitr::knit_exit()
 ### Moved functions R folder? ✅  
 
 ```{r}
-knitr::knit_code$get() |> names()
+knitrExtra::chunk_names_get()
 ```
 
 
 ```{r}
 knitrExtra:::chunk_to_r(c("last_plot_wipe", 
-                         "last_plot_wipe_last"))
+                         "last_plot_wipe_last",
+                         "data_replace",
+                         "data_filter",
+                         "data_slice",
+                         "data_slice_max",
+                         "data_slice_sample",
+                         "data_arrange",
+                         "data_slice_sample",
+                         "last_plot_data",
+                         "intercept"))
 ```
 
 
@@ -703,80 +1202,13 @@ package dependancies managed, i.e. `depend::function()` in proposed functions an
 
 ```{r, eval = F}
 usethis::use_package("ggplot2")
+usethis::use_package("dplyr")
 ```
-
-
-### Chosen a license? ✅ 
-
 
 ```{r, eval = F}
-usethis::use_mit_license()
-```
-
-### Run `devtools::check()` and addressed errors? 🚧 🚧 🚧 🚧 🚧 
-
-## Listen 🚧 
-
-### Consulted with technical experts 🚧 
-### Consulted with potential users 🚧 
-
-Getting started with that!
-
-## Polish.  Have you.
-
-### Settled on examples and put them in the roxygen skeleton? 🚧 
-
-### Written formal tests of functions? 🚧 
-
-
-### Sent tests in this readme to package via readme2pkg 🚧 
-
-That would look like this...
-
-```
-chunk_to_tests_testthat("test_geom_barlab_count")
-```
-
-
-### Have you worked added a description and author information in the DESCRIPTION file? 🚧 
-
-### Addressed *all* notes, warnings and errors. 🚧 
-
-## Promote
-
-### Package website built? 🚧 
-
-### Package website deployed? 🚧 
-
-## Harden
-
-### Submit to CRAN?  🚧 
-
-
-# Reports, Environment
-
-## Description file extract
-
-```{r}
-
-```
-
-## Environment
-
-Here I just want to print the packages and the versions
-
-```{r}
-all <- sessionInfo() |> print() |> capture.output()
-all[11:17]
-
-
-```
-
-## `devtools::check()` report
-
-```{r, error = T, eval = F}
-# rm(list = c("geom_barlab_count", "geom_barlab_count_percent"))
-devtools::check(pkg = ".")
+devtools::document()
+devtools::check()
+devtools::install(pkg = ".", upgrade = "never")
 ```
 
 
