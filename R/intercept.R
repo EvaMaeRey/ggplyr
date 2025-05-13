@@ -1,19 +1,20 @@
 #' @export
 #' 
 library(ggplot2)
-intercept <- function(plot_name = NULL) {
+tag <- function(plot_name = NULL) {
 
   structure(
     list(plot_name_specification = plot_name), 
-    class = "intercept"
+    class = "tag"
     )
 
 }
 
-ggplot_add.intercept <- function(object, plot, object_name) {
+ggplot_add.tag <- function(object, plot, object_name) {
   
   assign(x = object$plot_name_specification, 
-         value = plot, envir = .GlobalEnv)
-  plot
+         value = plot + labs(tag = object$plot_name_specification), 
+         envir = .GlobalEnv)
+  plot 
 
   }

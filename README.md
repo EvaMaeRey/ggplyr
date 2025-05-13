@@ -38,8 +38,7 @@
   last_plot_wipe_last](#a-convenience-function-last_plot_wipe_last)
   - [Try it](#try-it)
 - [Other work](#other-work)
-- [Part 2. Packaging and documentation 🚧
-  ✅](#part-2-packaging-and-documentation--)
+- [Packaging and documentation 🚧 ✅](#packaging-and-documentation--)
   - [minimal requirements for github package. Have
     you:](#minimal-requirements-for-github-package-have-you)
     - [Created files for package archetecture with
@@ -122,7 +121,6 @@ data_replace <- function(data = NULL) {
 }
 
 #' @export
-
 ggplot_add.df_replace <- function(object, plot, object_name) {
   
   plot$data <- object$new_data_specification
@@ -422,7 +420,7 @@ tidytitanic::tidy_titanic |>
 
 
 #' @export
-data_slice_top_summarized <- function(.by, value = NULL,  n = 10, fun = sum) {
+data_slice_top_summarized <- function(.by, value = NULL, n = 10, fun = sum) {
   
   structure(list(value_specification = rlang::enquo(value),
                  by_specification = rlang::enquo(.by),
@@ -601,16 +599,23 @@ ggplot(mtcars) +
 ## data_split_unnest()
 
 ``` r
-data_split_unnest <- function(var_name, sep) {
-  structure(list(var_specification = rlang::enquo(var)),
+data_split_unnest <- function(var, sep = "; ") {
+  
+  structure(list(var_specification = rlang::enquo(var),
+                 var_name = deparse(substitute(var)),
+                 sep_specification = sep),
             class = "arrange_obs")
+  
 }
 
 ggplot_add.arrange_obs <- function(object, plot, object_name) {
+  
 
-  new_data <- dplyr::mutate(plot$data,
-                            !! object$arrange_specification)
-  plot$data <- new_data
+  plot$data  <- plot$data  |> 
+    mutate("{ object$var_name }" := 
+             str_split(!! object$var_specification, object$sep_specification)) |>
+    tidyr::unnest(!! object$var_specification)
+  
   plot
 
 }
@@ -773,34 +778,47 @@ last_plot_data()
 #' @export
 #' 
 library(ggplot2)
-intercept <- function(plot_name = NULL) {
+tag <- function(plot_name = NULL) {
 
   structure(
     list(plot_name_specification = plot_name), 
-    class = "intercept"
+    class = "tag"
     )
 
 }
 
-ggplot_add.intercept <- function(object, plot, object_name) {
+ggplot_add.tag <- function(object, plot, object_name) {
   
   assign(x = object$plot_name_specification, 
-         value = plot, envir = .GlobalEnv)
-  plot
+         value = plot + labs(tag = object$plot_name_specification), 
+         envir = .GlobalEnv)
+  plot 
 
   }
 ```
 
 ``` r
-p3 <- ggplot(cars) + intercept("p0") +
-  aes(speed, dist) + intercept("p1") +
-  geom_point()
-
-library(patchwork)
-p0 + p1 + p3
+ggplot(cars) + tag("data") +
+  aes(speed, dist) + tag("viz") +
+  geom_point() + tag("mark") +
+  geom_smooth() + tag("mark, stat")
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
+``` r
+
+library(patchwork)
+data + viz + mark + `mark, stat`
+```
+
+![](README_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
+
+``` r
+data + viz + mark + `mark, stat` + plot_annotation(tag_levels = "A")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-17-3.png)<!-- -->
 
 ------------------------------------------------------------------------
 
@@ -1469,7 +1487,7 @@ new layer in one step.
 - pedro alpho
 - Jonathan Sidi ggedit
 
-# Part 2. Packaging and documentation 🚧 ✅
+# Packaging and documentation 🚧 ✅
 
 ## minimal requirements for github package. Have you:
 

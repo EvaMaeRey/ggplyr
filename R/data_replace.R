@@ -9,12 +9,10 @@ data_replace <- function(data = NULL) {
 }
 
 #' @export
-
 ggplot_add.df_replace <- function(object, plot, object_name) {
   
   plot$data <- object$new_data_specification
   plot
 
 }
-
 
