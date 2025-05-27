@@ -9,8 +9,8 @@
   - [data_slice_sample()](#data_slice_sample)
   - [data_arrange()](#data_arrange)
   - [data_mutate()](#data_mutate)
-  - [data_split_unnest()](#data_split_unnest)
   - [last_plot_data()](#last_plot_data)
+  - [data_var_split()](#data_var_split)
   - [data_nest](#data_nest)
     - [intercept()](#intercept)
   - [Experiment…](#experiment)
@@ -596,31 +596,6 @@ ggplot(mtcars) +
 
 ![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
-## data_split_unnest()
-
-``` r
-data_split_unnest <- function(var, sep = "; ") {
-  
-  structure(list(var_specification = rlang::enquo(var),
-                 var_name = deparse(substitute(var)),
-                 sep_specification = sep),
-            class = "arrange_obs")
-  
-}
-
-ggplot_add.arrange_obs <- function(object, plot, object_name) {
-  
-
-  plot$data  <- plot$data  |> 
-    mutate("{ object$var_name }" := 
-             str_split(!! object$var_specification, object$sep_specification)) |>
-    tidyr::unnest(!! object$var_specification)
-  
-  plot
-
-}
-```
-
 ## last_plot_data()
 
 ``` r
@@ -669,6 +644,65 @@ last_plot_data() %>%
 #> Maserati Bora       15.0   8 3.570      53.5500
 #> Volvo 142E          21.4   4 2.780      59.4920
 ```
+
+## data_var_split()
+
+``` r
+library(ggplot2)
+data_var_split <- function(var, sep = "; ", levels = NULL) {
+  
+  structure(list(var_specification = rlang::enquo(var),
+                 var_name = deparse(substitute(var)),
+                 levels = levels,
+                 sep_specification = sep),
+            class = "arrange_obs")
+  
+}
+
+ggplot_add.arrange_obs <- function(object, plot, object_name) {
+  
+
+  plot$data  <- plot$data  |> 
+    dplyr::mutate("{ object$var_name }" := 
+             stringr::str_split(!! object$var_specification,
+                                object$sep_specification)) |>
+    tidyr::unnest(!! object$var_specification)
+  
+  if(!is.null(object$levels)){
+    
+    plot$data <- plot$data |>
+      dplyr::mutate("{ object$var_name }" := 
+             factor(!! object$var_specification,
+                                levels = object$levels))
+    
+  }
+  
+  plot
+
+}
+
+fruit_cats <- c("apple", "banana", "pear", "orange" )
+
+
+data.frame(selected_fruit = 
+             c("banana; apple; pear", 
+               "apple; pear", 
+               "banana; pear")) |>
+  ggplot() + 
+  aes(x = selected_fruit) + 
+  geom_bar()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
+``` r
+
+last_plot() + 
+  data_var_split(selected_fruit, "; ", levels = fruit_cats) +
+  scale_x_discrete(drop = F)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
 
 ## data_nest
 
@@ -1503,7 +1537,7 @@ knitrExtra::chunk_names_get()
 #> [10] "unnamed-chunk-7"     "data_slice_max"      "unnamed-chunk-8"    
 #> [13] "unnamed-chunk-9"     "data_slice_sample"   "unnamed-chunk-10"   
 #> [16] "data_arrange"        "unnamed-chunk-11"    "unnamed-chunk-12"   
-#> [19] "unnamed-chunk-13"    "unnamed-chunk-14"    "last_plot_data"     
+#> [19] "unnamed-chunk-13"    "last_plot_data"      "unnamed-chunk-14"   
 #> [22] "unnamed-chunk-15"    "unnamed-chunk-16"    "intercept"          
 #> [25] "unnamed-chunk-17"    "unnamed-chunk-18"    "unnamed-chunk-19"   
 #> [28] "unnamed-chunk-20"    "unnamed-chunk-21"    "unnamed-chunk-22"   

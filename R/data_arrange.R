@@ -4,6 +4,7 @@ data_arrange <- function(arrange) {
             class = "arrange_obs")
 }
 
+#' @export
 ggplot_add.arrange_obs <- function(object, plot, object_name) {
   
   new_data <- dplyr::arrange(plot$data, 

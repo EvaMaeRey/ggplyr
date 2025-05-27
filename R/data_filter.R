@@ -1,6 +1,4 @@
 #' @export
-#' 
-library(ggplot2)
 data_filter <- function(.keep, .by) {
   structure(list(keep_specification = rlang::enquo(.keep), 
                  by_specification = rlang::enquo(.by)), 
@@ -20,6 +18,7 @@ ggplot_add.filterobs <- function(object, plot, object_name) {
 
 }
 
+#' @export
 data_unfilter <- function(){
     structure(list(), 
             class = "unfilterobs")

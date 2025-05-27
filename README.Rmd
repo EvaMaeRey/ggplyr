@@ -54,6 +54,9 @@ ggplot_add.layers_wipe <- function(object, plot, object_name) {
 ```
 
 
+
+
+
 ```{r}
 ggplot(mtcars) + 
   aes(x = cyl) + 
@@ -109,8 +112,6 @@ last_plot() +
 
 ```{r data_filter}
 #' @export
-#' 
-library(ggplot2)
 data_filter <- function(.keep, .by) {
   structure(list(keep_specification = rlang::enquo(.keep), 
                  by_specification = rlang::enquo(.by)), 
@@ -130,6 +131,7 @@ ggplot_add.filterobs <- function(object, plot, object_name) {
 
 }
 
+#' @export
 data_unfilter <- function(){
     structure(list(), 
             class = "unfilterobs")
@@ -383,6 +385,7 @@ data_slice_sample <- function(n = 10, by) {
   
 }
 
+#' @export
 ggplot_add.slice_sample_obs <- function(object, plot, object_name) {
   
   new_data <- dplyr::slice_sample(plot$data, 
@@ -421,6 +424,7 @@ data_arrange <- function(arrange) {
             class = "arrange_obs")
 }
 
+#' @export
 ggplot_add.arrange_obs <- function(object, plot, object_name) {
   
   new_data <- dplyr::arrange(plot$data, 
@@ -496,33 +500,6 @@ ggplot(mtcars) +
   aes(color = wt_times_mpg)
 ```
 
-## data_split_unnest()
-
-```{r}
-data_split_unnest <- function(var, sep = "; ") {
-  
-  structure(list(var_specification = rlang::enquo(var),
-                 var_name = deparse(substitute(var)),
-                 sep_specification = sep),
-            class = "arrange_obs")
-  
-}
-
-ggplot_add.arrange_obs <- function(object, plot, object_name) {
-  
-
-  plot$data  <- plot$data  |> 
-    mutate("{ object$var_name }" := 
-             str_split(!! object$var_specification, object$sep_specification)) |>
-    tidyr::unnest(!! object$var_specification)
-  
-  plot
-
-}
-
-```
-
-
 ## last_plot_data()
 
 ```{r last_plot_data}
@@ -539,6 +516,62 @@ last_plot_data <- function(){
 last_plot_data() %>% 
   dplyr::select(mpg, cyl, wt, wt_times_mpg)
 ```
+
+## data_var_split()
+
+```{r}
+library(ggplot2)
+data_var_split <- function(var, sep = "; ", levels = NULL) {
+  
+  structure(list(var_specification = rlang::enquo(var),
+                 var_name = deparse(substitute(var)),
+                 levels = levels,
+                 sep_specification = sep),
+            class = "arrange_obs")
+  
+}
+
+ggplot_add.arrange_obs <- function(object, plot, object_name) {
+  
+
+  plot$data  <- plot$data  |> 
+    dplyr::mutate("{ object$var_name }" := 
+             stringr::str_split(!! object$var_specification,
+                                object$sep_specification)) |>
+    tidyr::unnest(!! object$var_specification)
+  
+  if(!is.null(object$levels)){
+    
+    plot$data <- plot$data |>
+      dplyr::mutate("{ object$var_name }" := 
+             factor(!! object$var_specification,
+                                levels = object$levels))
+    
+  }
+  
+  plot
+
+}
+
+fruit_cats <- c("apple", "banana", "pear", "orange" )
+
+
+data.frame(selected_fruit = 
+             c("banana; apple; pear", 
+               "apple; pear", 
+               "banana; pear")) |>
+  ggplot() + 
+  aes(x = selected_fruit) + 
+  geom_bar()
+
+last_plot() + 
+  data_var_split(selected_fruit, "; ", levels = fruit_cats) +
+  scale_x_discrete(drop = F)
+
+```
+
+
+
 
 
 ## data_nest
@@ -607,32 +640,45 @@ last_plot_data()
 
 ```{r intercept}
 #' @export
-#' 
-library(ggplot2)
-tag <- function(plot_name = NULL) {
-
-  structure(
-    list(plot_name_specification = plot_name), 
-    class = "tag"
-    )
-
+intercept <- function (plot_name = NULL) {
+    structure(list(plot_name_specification = plot_name), class = "intercept")
 }
 
-ggplot_add.tag <- function(object, plot, object_name) {
+#' @export
+ggplot_add.intercept <- function (object, plot, object_name) {
   
-  assign(x = object$plot_name_specification, 
-         value = plot + labs(tag = object$plot_name_specification), 
-         envir = .GlobalEnv)
-  plot 
-
+  objects <- ls(envir = .GlobalEnv)
+  
+  is_ggplot2 <- c()
+  
+  for (i in 1:length(objects)){
+    
+    is_ggplot2[i] <- is.ggplot(get(objects[i])) 
+    
   }
+  
+  count <- sum(is_ggplot2) + 1
+  
+  plot_name <- paste0("p", count)
+
+  if(!is.null(object$plot_name_specification)){plot_name <- object$plot_name_specification}
+  
+    assign(x = plot_name, value = plot, 
+           envir = .GlobalEnv)
+    
+    message(plot_name)
+    
+    plot
+}
+
+
 ```
 
 ```{r}
-ggplot(cars) + tag("data") +
-  aes(speed, dist) + tag("viz") +
-  geom_point() + tag("mark") +
-  geom_smooth() + tag("mark, stat")
+ggplot(cars) + intercept("data") +
+  aes(speed, dist) + intercept("viz") +
+  geom_point() + intercept("mark") +
+  geom_smooth() + intercept("mark, stat")
 
 library(patchwork)
 data + viz + mark + `mark, stat`
@@ -804,6 +850,7 @@ facet_across <- function(x_from) {
 
 }
 
+#' @export
 ggplot_add.facet_across <- function(object, plot, object_name, ...) {
   
   plot$data <- plot$data %>% 
@@ -1185,8 +1232,14 @@ knitrExtra::chunk_names_get()
 ```
 
 
+```{r ggplot_add}
+ggplot_add <- ggplot2::ggplot_add
+
+```
+
 ```{r}
-knitrExtra:::chunk_to_r(c("last_plot_wipe", 
+knitrExtra:::chunk_to_r(c("ggplot_add",
+                          "last_plot_wipe", 
                          "last_plot_wipe_last",
                          "data_replace",
                          "data_filter",
@@ -1207,7 +1260,7 @@ knitrExtra:::chunk_to_r(c("last_plot_wipe",
 
 ### Managed dependencies ? ✅ 
 
-package dependancies managed, i.e. `depend::function()` in proposed functions and declared in the DESCRIPTION
+package dependencies managed, i.e. `depend::function()` in proposed functions and declared in the DESCRIPTION
 
 ```{r, eval = F}
 usethis::use_package("ggplot2")

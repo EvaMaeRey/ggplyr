@@ -7,6 +7,7 @@ data_slice_sample <- function(n = 10, by) {
   
 }
 
+#' @export
 ggplot_add.slice_sample_obs <- function(object, plot, object_name) {
   
   new_data <- dplyr::slice_sample(plot$data, 
