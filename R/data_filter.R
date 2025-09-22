@@ -35,3 +35,24 @@ ggplot_add.unfilterobs <- function(object, plot, object_name) {
 
 }
 
+
+#' @export
+data_refilter <- function(.keep, .by) {
+  structure(list(keep_specification = rlang::enquo(.keep), 
+                 by_specification = rlang::enquo(.by)), 
+            class = "refilterobs")
+}
+
+#' @export
+ggplot_add.refilterobs <- function(object, plot, object_name) {
+  
+  plot$data <- plot$unfiltered_data
+  
+  new_data <- dplyr::filter(plot$data, 
+                            !!object$keep_specification, 
+                            .by = !!object$by_specification)
+  plot$data <- new_data
+  plot
+
+}
+

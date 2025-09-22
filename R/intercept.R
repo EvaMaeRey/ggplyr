@@ -16,11 +16,21 @@ ggplot_add.intercept <- function (object, plot, object_name) {
     
   }
   
-  count <- sum(is_ggplot2) + 1
-  
-  plot_name <- paste0("p", count)
 
-  if(!is.null(object$plot_name_specification)){plot_name <- object$plot_name_specification}
+    count <- sum(is_ggplot2) + 1
+
+
+  if(!is.null(object$plot_name_specification)){
+    plot_name <- object$plot_name_specification
+    
+    }else{
+    
+  
+    plot_name <- paste0("p", count)
+    
+  }
+  
+
   
     assign(x = plot_name, value = plot, 
            envir = .GlobalEnv)

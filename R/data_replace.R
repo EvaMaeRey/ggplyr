@@ -1,3 +1,4 @@
+
 #' @export
 data_replace <- function(data = NULL) {
 
@@ -8,6 +9,9 @@ data_replace <- function(data = NULL) {
 
 }
 
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
 #' @export
 ggplot_add.df_replace <- function(object, plot, object_name) {
   

@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
   message = F
 )
 
-library(tidyverse, warn.conflicts = F)
+library(tidyverse)
 
 ggplot2::theme_set(theme_gray(base_size = 18))
 ```
@@ -74,6 +74,7 @@ last_plot() +
 ### data_replace()
 
 ```{r data_replace}
+
 #' @export
 data_replace <- function(data = NULL) {
 
@@ -84,6 +85,9 @@ data_replace <- function(data = NULL) {
 
 }
 
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
 #' @export
 ggplot_add.df_replace <- function(object, plot, object_name) {
   
@@ -148,6 +152,27 @@ ggplot_add.unfilterobs <- function(object, plot, object_name) {
 
 }
 
+
+#' @export
+data_refilter <- function(.keep, .by) {
+  structure(list(keep_specification = rlang::enquo(.keep), 
+                 by_specification = rlang::enquo(.by)), 
+            class = "refilterobs")
+}
+
+#' @export
+ggplot_add.refilterobs <- function(object, plot, object_name) {
+  
+  plot$data <- plot$unfiltered_data
+  
+  new_data <- dplyr::filter(plot$data, 
+                            !!object$keep_specification, 
+                            .by = !!object$by_specification)
+  plot$data <- new_data
+  plot
+
+}
+
 ```
 
 ```{r}
@@ -169,8 +194,38 @@ last_plot() +
 
 
 
+### data_include()
 
-```{r}
+```{r data_include}
+#' @export
+data_include <- function(.include, .by) {
+  structure(list(include_specification = rlang::enquo(.include), 
+                 by_specification = rlang::enquo(.by)), 
+            class = "includeobs")
+}
+
+#' @export
+ggplot_add.includeobs <- function(object, plot, object_name) {
+  
+  plot$unfiltered_data <- plot$unfiltered_data %||% plot$data
+  
+  include_data <- dplyr::filter(plot$data, 
+                            !!object$include_specification, 
+                            .by = !!object$by_specification)
+  
+  plot$data <- plot$data |> bind_rows(include_data)
+  plot
+
+}
+
+
+
+```
+
+
+
+
+```{r, eval = F}
 drob_funs <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-07-09/drob_funs.csv')
 
 drob_funs %>% 
@@ -519,19 +574,20 @@ last_plot_data() %>%
 
 ## data_var_split()
 
-```{r}
-library(ggplot2)
+```{r data_var_split}
+#' @export
 data_var_split <- function(var, sep = "; ", levels = NULL) {
   
   structure(list(var_specification = rlang::enquo(var),
                  var_name = deparse(substitute(var)),
                  levels = levels,
                  sep_specification = sep),
-            class = "arrange_obs")
+            class = "data_var_split")
   
 }
 
-ggplot_add.arrange_obs <- function(object, plot, object_name) {
+#' @export
+ggplot_add.data_var_split <- function(object, plot, object_name) {
   
 
   plot$data  <- plot$data  |> 
@@ -552,7 +608,10 @@ ggplot_add.arrange_obs <- function(object, plot, object_name) {
   plot
 
 }
+```
 
+
+```{r}
 fruit_cats <- c("apple", "banana", "pear", "orange" )
 
 
@@ -657,11 +716,21 @@ ggplot_add.intercept <- function (object, plot, object_name) {
     
   }
   
-  count <- sum(is_ggplot2) + 1
-  
-  plot_name <- paste0("p", count)
 
-  if(!is.null(object$plot_name_specification)){plot_name <- object$plot_name_specification}
+    count <- sum(is_ggplot2) + 1
+
+
+  if(!is.null(object$plot_name_specification)){
+    plot_name <- object$plot_name_specification
+    
+    }else{
+    
+  
+    plot_name <- paste0("p", count)
+    
+  }
+  
+
   
     assign(x = plot_name, value = plot, 
            envir = .GlobalEnv)
@@ -674,7 +743,7 @@ ggplot_add.intercept <- function (object, plot, object_name) {
 
 ```
 
-```{r}
+```{r, eval = F}
 ggplot(cars) + intercept("data") +
   aes(speed, dist) + intercept("viz") +
   geom_point() + intercept("mark") +
@@ -683,6 +752,179 @@ ggplot(cars) + intercept("data") +
 library(patchwork)
 data + viz + mark + `mark, stat`
 data + viz + mark + `mark, stat` + plot_annotation(tag_levels = "A")
+```
+
+
+---
+
+## aes_from_data()
+
+
+```{r aes_from_data}
+#' @export
+aes_from_data <- function() {
+
+  structure(
+    list(data_specification = data), 
+    class = "aes_from_data"
+    )
+
+}
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_from_data <- function(object, plot, object_name) {
+  
+  plot + aes_all(plot$data |> names())
+
+}
+```
+
+
+```{r}
+ggplot(cars) +
+  aes(speed) + 
+  geom_rug() + 
+  aes_from_data() ->
+p
+
+last_plot()$mapping
+```
+
+
+```{r, aes_select}
+#' @export
+aes_select <- function(vars) {
+
+  structure(
+    list(data_spec = data,
+         vars_spec = rlang::enquo(vars)), 
+    class = "aes_select"
+    )
+
+}
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_select <- function(object, plot, object_name) {
+  
+  selected_names <- plot$data |> 
+    dplyr::select(!!rlang::quo_get_expr(object$vars_spec)) |>
+    names()
+  
+  plot + 
+    aes_all(selected_names)
+
+}
+
+library(ggplot2)
+ggplot(cars) + 
+  aes_select(dist:speed)
+
+last_plot()$mapping
+
+
+```
+
+
+```{r aes_dims}
+# use in plot specification
+#' @export
+dims0 <- function(...) {
+  
+  varnames <- as.character(ensyms(...))
+  vars <- list(...)
+  listvec <- asplit(do.call(cbind, vars), 1)
+  structure(listvec, varnames = varnames)
+
+}
+
+# use in Stat specification?
+#' @export
+dims_unpack <- function(x) {
+  dim_reduction_vars <- x
+  df <- do.call(rbind, dim_reduction_vars)
+  colnames(df) <- attr(dim_reduction_vars, "varnames")
+  as.data.frame(df)
+  
+}
+
+
+#' @export
+aes_dims <- function(vars) {
+
+  structure(
+    list(data_spec = data,
+         vars_spec = rlang::enquo(vars)), 
+    class = "aes_dims"
+    )
+
+}
+
+
+
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_dims <- function(object, plot, object_name) {
+  
+  selected_names <- plot$data |> 
+    dplyr::select(!!rlang::quo_get_expr(object$vars_spec)) |>
+    names()
+  
+  var_syms <- rlang::syms(selected_names)
+
+  plot + 
+    aes(dims = dims0(!!!var_syms))
+
+}
+
+```
+
+
+
+
+
+```{r , fig.height=15, fig.width=20, eval = F}
+library(ggplot2)
+compute_ols <- function(data, ..., formula = y ~ x){
+
+    model <- lm(formula, data)
+    data$xend <- data$x
+    data$yend <- data$y
+    data$y <- fitted.values(model)
+    
+    data$model <- rep(list(NA), nrow(data))
+    data$model[[1]] <- model
+    
+    data
+}
+
+StatOls <- ggproto(`_class` = "StatOls", 
+                   `_inherit` = Stat,
+                   compute_panel = compute_ols)
+
+library(statexpress)
+ggplot(mtcars) + 
+  aes(x = wt, y = mpg) + 
+  geom_point(size = 5) + 
+  aes_all(mtcars |> names()) +
+  geom_point(stat = StatOls,
+             formula = mpg ~ wt + vs, 
+             alpha = .5,
+             size = 5) +
+  aes(color = vs |> factor())
+
+last_plot() + facet_wrap(~cyl)
+
+last_plot() |> layer_data(i = 2) |> _[1, "model"]
+
+library(patchwork)
+(p1 + p2 + p3) / (p4 + p5 + p6)
+
 ```
 
 
@@ -721,7 +963,7 @@ last_plot() +
 
 
 
-```{r}
+```{r, eval = F}
 
 drob_funs %>% 
   ggplot() + 
@@ -887,7 +1129,7 @@ life_wide %>%
 
 # explore extension exported functions...
 
-```{r, fig.width=10, fig.height=10}
+```{r, fig.width=10, fig.height=10, eval = F}
 ext_exports <- read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-11-19-gg-prefixes/exported_funs_exts_ggplot2_tidyverse_org.csv") %>% 
   mutate(prefix = str_extract(fun_exported, ".*?_")) %>% 
   mutate(prefix_long = str_extract(fun_exported, ".+_")) %>% 
@@ -947,7 +1189,7 @@ last_plot() +
   facet_wrap(~ prefix)
 ```
 
-```{r fig.width=10, fig.height=10}
+```{r fig.width=10, fig.height=10, eval = F}
 last_plot() +  
   data_filter(n() > 50, .by = user) + 
   labs(subtitle = "Subsetting to only at classic extension points and most productive authors of classic extension point functions") +
@@ -1232,24 +1474,24 @@ knitrExtra::chunk_names_get()
 ```
 
 
-```{r ggplot_add}
-ggplot_add <- ggplot2::ggplot_add
-
-```
-
 ```{r}
-knitrExtra:::chunk_to_r(c("ggplot_add",
+knitrExtra:::chunk_to_r(c(
                           "last_plot_wipe", 
                          "last_plot_wipe_last",
                          "data_replace",
                          "data_filter",
+                         "data_include",
                          "data_slice",
                          "data_slice_max",
                          "data_slice_sample",
                          "data_arrange",
                          "data_slice_sample",
                          "last_plot_data",
-                         "intercept"))
+                         "intercept",
+                         "data_var_split",
+                         "aes_from_data",
+                         "aes_dims"
+                        ))
 ```
 
 

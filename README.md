@@ -3,6 +3,7 @@
   mechanism…](#build-functionality-using-the-ggplot_add-extension-mechanism)
   - [data_replace()](#data_replace)
   - [data_filter()](#data_filter)
+  - [data_include()](#data_include)
   - [data_slice()](#data_slice)
   - [data_slice_max()](#data_slice_max)
   - [data_slice_top_summarized](#data_slice_top_summarized)
@@ -13,6 +14,7 @@
   - [data_var_split()](#data_var_split)
   - [data_nest](#data_nest)
     - [intercept()](#intercept)
+  - [aes_from_data()](#aes_from_data)
   - [Experiment…](#experiment)
 - [facet_across](#facet_across)
 - [explore extension exported
@@ -110,6 +112,7 @@ last_plot() +
 ### data_replace()
 
 ``` r
+
 #' @export
 data_replace <- function(data = NULL) {
 
@@ -120,6 +123,9 @@ data_replace <- function(data = NULL) {
 
 }
 
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
 #' @export
 ggplot_add.df_replace <- function(object, plot, object_name) {
   
@@ -149,8 +155,6 @@ last_plot() +
 
 ``` r
 #' @export
-#' 
-library(ggplot2)
 data_filter <- function(.keep, .by) {
   structure(list(keep_specification = rlang::enquo(.keep), 
                  by_specification = rlang::enquo(.by)), 
@@ -170,6 +174,7 @@ ggplot_add.filterobs <- function(object, plot, object_name) {
 
 }
 
+#' @export
 data_unfilter <- function(){
     structure(list(), 
             class = "unfilterobs")
@@ -182,6 +187,27 @@ ggplot_add.unfilterobs <- function(object, plot, object_name) {
   
   plot$data <- plot$unfiltered_data %||% plot$data
   
+  plot
+
+}
+
+
+#' @export
+data_refilter <- function(.keep, .by) {
+  structure(list(keep_specification = rlang::enquo(.keep), 
+                 by_specification = rlang::enquo(.by)), 
+            class = "refilterobs")
+}
+
+#' @export
+ggplot_add.refilterobs <- function(object, plot, object_name) {
+  
+  plot$data <- plot$unfiltered_data
+  
+  new_data <- dplyr::filter(plot$data, 
+                            !!object$keep_specification, 
+                            .by = !!object$by_specification)
+  plot$data <- new_data
   plot
 
 }
@@ -214,6 +240,31 @@ last_plot() +
 
 ![](README_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->
 
+### data_include()
+
+``` r
+#' @export
+data_include <- function(.include, .by) {
+  structure(list(include_specification = rlang::enquo(.include), 
+                 by_specification = rlang::enquo(.by)), 
+            class = "includeobs")
+}
+
+#' @export
+ggplot_add.includeobs <- function(object, plot, object_name) {
+  
+  plot$unfiltered_data <- plot$unfiltered_data %||% plot$data
+  
+  include_data <- dplyr::filter(plot$data, 
+                            !!object$include_specification, 
+                            .by = !!object$by_specification)
+  
+  plot$data <- plot$data |> bind_rows(include_data)
+  plot
+
+}
+```
+
 ``` r
 drob_funs <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-07-09/drob_funs.csv')
 
@@ -223,29 +274,17 @@ drob_funs %>%
   aes(y = fct_infreq(funs)) +
   aes(y = fct_infreq(funs) %>% fct_rev()) +
   geom_bar() 
-```
-
-![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
-
-``` r
 
 last_plot() + 
   data_filter(n() >= 500, 
               .by = c(funs, pkgs)) +
   labs(title = "Functions used 500 or more times by @drob")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
-
-``` r
 
 
 last_plot() + 
   data_filter(pkgs == "ggplot") + 
   labs(title = "ggplot2 functions used 500 or more times by @drob")
 ```
-
-![](README_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->
 
 ### data_slice()
 
@@ -481,6 +520,7 @@ data_slice_sample <- function(n = 10, by) {
   
 }
 
+#' @export
 ggplot_add.slice_sample_obs <- function(object, plot, object_name) {
   
   new_data <- dplyr::slice_sample(plot$data, 
@@ -519,6 +559,7 @@ data_arrange <- function(arrange) {
             class = "arrange_obs")
 }
 
+#' @export
 ggplot_add.arrange_obs <- function(object, plot, object_name) {
   
   new_data <- dplyr::arrange(plot$data, 
@@ -648,18 +689,19 @@ last_plot_data() %>%
 ## data_var_split()
 
 ``` r
-library(ggplot2)
+#' @export
 data_var_split <- function(var, sep = "; ", levels = NULL) {
   
   structure(list(var_specification = rlang::enquo(var),
                  var_name = deparse(substitute(var)),
                  levels = levels,
                  sep_specification = sep),
-            class = "arrange_obs")
+            class = "data_var_split")
   
 }
 
-ggplot_add.arrange_obs <- function(object, plot, object_name) {
+#' @export
+ggplot_add.data_var_split <- function(object, plot, object_name) {
   
 
   plot$data  <- plot$data  |> 
@@ -680,7 +722,9 @@ ggplot_add.arrange_obs <- function(object, plot, object_name) {
   plot
 
 }
+```
 
+``` r
 fruit_cats <- c("apple", "banana", "pear", "orange" )
 
 
@@ -810,49 +854,230 @@ last_plot_data()
 
 ``` r
 #' @export
-#' 
-library(ggplot2)
-tag <- function(plot_name = NULL) {
+intercept <- function (plot_name = NULL) {
+    structure(list(plot_name_specification = plot_name), class = "intercept")
+}
+
+#' @export
+ggplot_add.intercept <- function (object, plot, object_name) {
+  
+  objects <- ls(envir = .GlobalEnv)
+  
+  is_ggplot2 <- c()
+  
+  for (i in 1:length(objects)){
+    
+    is_ggplot2[i] <- is.ggplot(get(objects[i])) 
+    
+  }
+  
+
+    count <- sum(is_ggplot2) + 1
+
+
+  if(!is.null(object$plot_name_specification)){
+    plot_name <- object$plot_name_specification
+    
+    }else{
+    
+  
+    plot_name <- paste0("p", count)
+    
+  }
+  
+
+  
+    assign(x = plot_name, value = plot, 
+           envir = .GlobalEnv)
+    
+    message(plot_name)
+    
+    plot
+}
+```
+
+``` r
+ggplot(cars) + intercept("data") +
+  aes(speed, dist) + intercept("viz") +
+  geom_point() + intercept("mark") +
+  geom_smooth() + intercept("mark, stat")
+
+library(patchwork)
+data + viz + mark + `mark, stat`
+data + viz + mark + `mark, stat` + plot_annotation(tag_levels = "A")
+```
+
+------------------------------------------------------------------------
+
+## aes_from_data()
+
+``` r
+#' @export
+aes_from_data <- function() {
 
   structure(
-    list(plot_name_specification = plot_name), 
-    class = "tag"
+    list(data_specification = data), 
+    class = "aes_from_data"
     )
 
 }
 
-ggplot_add.tag <- function(object, plot, object_name) {
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_from_data <- function(object, plot, object_name) {
   
-  assign(x = object$plot_name_specification, 
-         value = plot + labs(tag = object$plot_name_specification), 
-         envir = .GlobalEnv)
-  plot 
+  plot + aes_all(plot$data |> names())
 
-  }
+}
 ```
 
 ``` r
-ggplot(cars) + tag("data") +
-  aes(speed, dist) + tag("viz") +
-  geom_point() + tag("mark") +
-  geom_smooth() + tag("mark, stat")
+ggplot(cars) +
+  aes(speed) + 
+  geom_rug() + 
+  aes_from_data() ->
+p
+
+last_plot()$mapping
+#> Aesthetic mapping: 
+#> * `speed` -> `speed`
+#> * `dist`  -> `dist`
+#> * `x`     -> `speed`
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+``` r
+#' @export
+aes_select <- function(vars) {
+
+  structure(
+    list(data_spec = data,
+         vars_spec = rlang::enquo(vars)), 
+    class = "aes_select"
+    )
+
+}
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_select <- function(object, plot, object_name) {
+  
+  selected_names <- plot$data |> 
+    dplyr::select(!!rlang::quo_get_expr(object$vars_spec)) |>
+    names()
+  
+  plot + 
+    aes_all(selected_names)
+
+}
+
+library(ggplot2)
+ggplot(cars) + 
+  aes_select(dist:speed)
+```
+
+![](README_files/figure-gfm/aes_select-1.png)<!-- -->
 
 ``` r
+
+last_plot()$mapping
+#> Aesthetic mapping: 
+#> * `dist`  -> `dist`
+#> * `speed` -> `speed`
+```
+
+``` r
+# use in plot specification
+#' @export
+dims0 <- function(...) {
+  
+  varnames <- as.character(ensyms(...))
+  vars <- list(...)
+  listvec <- asplit(do.call(cbind, vars), 1)
+  structure(listvec, varnames = varnames)
+
+}
+
+# use in Stat specification?
+#' @export
+dims_unpack <- function(x) {
+  dim_reduction_vars <- x
+  df <- do.call(rbind, dim_reduction_vars)
+  colnames(df) <- attr(dim_reduction_vars, "varnames")
+  as.data.frame(df)
+  
+}
+
+
+#' @export
+aes_dims <- function(vars) {
+
+  structure(
+    list(data_spec = data,
+         vars_spec = rlang::enquo(vars)), 
+    class = "aes_dims"
+    )
+
+}
+
+
+
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_dims <- function(object, plot, object_name) {
+  
+  selected_names <- plot$data |> 
+    dplyr::select(!!rlang::quo_get_expr(object$vars_spec)) |>
+    names()
+  
+  var_syms <- rlang::syms(selected_names)
+
+  plot + 
+    aes(dims = dims0(!!!var_syms))
+
+}
+```
+
+``` r
+library(ggplot2)
+compute_ols <- function(data, ..., formula = y ~ x){
+
+    model <- lm(formula, data)
+    data$xend <- data$x
+    data$yend <- data$y
+    data$y <- fitted.values(model)
+    
+    data$model <- rep(list(NA), nrow(data))
+    data$model[[1]] <- model
+    
+    data
+}
+
+StatOls <- ggproto(`_class` = "StatOls", 
+                   `_inherit` = Stat,
+                   compute_panel = compute_ols)
+
+library(statexpress)
+ggplot(mtcars) + 
+  aes(x = wt, y = mpg) + 
+  geom_point(size = 5) + 
+  aes_all(mtcars |> names()) +
+  geom_point(stat = StatOls,
+             formula = mpg ~ wt + vs, 
+             alpha = .5,
+             size = 5) +
+  aes(color = vs |> factor())
+
+last_plot() + facet_wrap(~cyl)
+
+last_plot() |> layer_data(i = 2) |> _[1, "model"]
 
 library(patchwork)
-data + viz + mark + `mark, stat`
+(p1 + p2 + p3) / (p4 + p5 + p6)
 ```
-
-![](README_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
-
-``` r
-data + viz + mark + `mark, stat` + plot_annotation(tag_levels = "A")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-17-3.png)<!-- -->
 
 ------------------------------------------------------------------------
 
@@ -867,7 +1092,7 @@ ggplot(cars) +
   scale_y_continuous(limits = c(0,25))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 ``` r
 last_plot() + 
@@ -898,38 +1123,21 @@ drob_funs %>%
   coord_equal() +
   aes(fill = pkgs) + 
   guides(fill = "none")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
-
-``` r
 
 last_plot() +
   data_mutate(.value = n(), 
               .by = c(funs, pkgs), 
               var_name = "num"
               ) 
-```
-
-![](README_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
-
-``` r
 
 last_plot() +
   data_filter(num >= 200)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-20-3.png)<!-- -->
-
-``` r
 
 last_plot() +
   data_mutate(.value = case_when(funs == "ggplot" ~ "GGPLOT",
                                      .default = funs), 
               var_name = "funs")
 ```
-
-![](README_files/figure-gfm/unnamed-chunk-20-4.png)<!-- -->
 
 ``` r
 data_var_update <- function(.value, .by, var_name) {
@@ -1028,7 +1236,7 @@ ggplot() +
   facet_wrap(~name)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 ``` r
 #' @export
@@ -1041,6 +1249,7 @@ facet_across <- function(x_from) {
 
 }
 
+#' @export
 ggplot_add.facet_across <- function(object, plot, object_name, ...) {
   
   plot$data <- plot$data %>% 
@@ -1094,57 +1303,27 @@ ext_exports %>%
         axis.ticks = element_blank()) + 
   guides(size = "none") +
   labs(title = "Number of exported functions by author")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
-
-``` r
 
 last_plot() + 
   data_slice_top_summarized(user)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
-
-``` r
 
 (get_theme() + last_plot()$theme) |> theme_set()
 
 last_plot() + 
   aes(id = prefix) + 
   labs(title = "Number of exported functions by function prefix")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-25-3.png)<!-- -->
-
-``` r
 
 
 last_plot() + 
   data_slice_top_summarized(prefix, n = 30)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-25-4.png)<!-- -->
-
-``` r
 
 last_plot() + 
   data_filter(ind_classic_prefix) + 
   labs(subtitle = "Subsetting to only at classic extension points")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-25-5.png)<!-- -->
-
-``` r
 
 last_plot() + 
   aes(id = prefix_long) + 
   labs(subtitle = "Subsetting to only classic extension points - number of functions by long prefix ...")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-25-6.png)<!-- -->
-
-``` r
   
 last_plot() + 
   aes(id = prefix) + 
@@ -1153,11 +1332,6 @@ last_plot() +
   theme(legend.justification = "left") +
   scale_fill_viridis_d(end = .85) + 
   labs(subtitle = "")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-25-7.png)<!-- -->
-
-``` r
   
   
 last_plot() +
@@ -1168,8 +1342,6 @@ last_plot() +
   facet_wrap(~ prefix)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-25-8.png)<!-- -->
-
 ``` r
 last_plot() +  
   data_filter(n() > 50, .by = user) + 
@@ -1178,19 +1350,12 @@ last_plot() +
   aes(id = prefix) + 
   aes(fill = prefix) + 
   theme(legend.position = "none")
-```
-
-![](README_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
-
-``` r
 
 last_plot() + 
   aes(group = paste0(repo, "::", fun_exported),
       label = "") + 
   theme(legend.position = "top")
 ```
-
-![](README_files/figure-gfm/unnamed-chunk-26-2.png)<!-- -->
 
 # {ggwipe}: print the last plot and remove stat/geom/annotate layers in one step
 
@@ -1229,7 +1394,7 @@ last_plot_wipe() +
   labs(tag = "Plot 2")
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-27-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-27-2.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-29-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-29-2.png" width="49%" />
 
 ``` r
 mtcars %>% 
@@ -1240,16 +1405,26 @@ mtcars %>%
 
 last_plot()$layers
 #> $geom_bar
-#> geom_bar: just = 0.5, na.rm = FALSE, orientation = NA
-#> stat_count: na.rm = FALSE, orientation = NA
+#> geom_bar: na.rm = FALSE, just = 0.5, lineend = butt, linejoin = mitre
+#> stat_count: na.rm = FALSE
 #> position_stack
 
 last_plot_wipe() + 
   aes(y = vs, fill = NULL) + 
   geom_count() +
   labs(tag = "Plot 4")
+#> Error in `geom_bar()`:
+#> ! Problem while computing stat.
+#> ℹ Error occurred in the 1st layer.
+#> Caused by error in `setup_params()`:
+#> ! `stat_count()` must only have an x or y aesthetic.
 
 last_plot()$layers
+#> $geom_bar
+#> geom_bar: na.rm = FALSE, just = 0.5, lineend = butt, linejoin = mitre
+#> stat_count: na.rm = FALSE
+#> position_stack 
+#> 
 #> $geom_count
 #> geom_point: na.rm = FALSE
 #> stat_sum: na.rm = FALSE
@@ -1257,9 +1432,14 @@ last_plot()$layers
 
 last_plot_wipe() + 
   geom_count(shape = 21)
+#> Error in `geom_bar()`:
+#> ! Problem while computing stat.
+#> ℹ Error occurred in the 1st layer.
+#> Caused by error in `setup_params()`:
+#> ! `stat_count()` must only have an x or y aesthetic.
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-28-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-28-2.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-28-3.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-30-1.png" width="49%" />
 
 ## You can specify the specific layer, with the `index = n` argument
 
@@ -1273,7 +1453,7 @@ ggplot(data = cars) +
 last_plot_wipe(index = 1)  # removes rug
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-29-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-29-2.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-31-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-31-2.png" width="49%" />
 
 ## You can also use it for backtracking - removing the most recent layer with `last_plot_wipe_last()`.
 
@@ -1291,7 +1471,7 @@ last_plot_wipe_last()
 last_plot_wipe_last()
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-30-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-30-2.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-30-3.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-30-4.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-32-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-32-2.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-32-3.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-32-4.png" width="49%" />
 
 # Curious about implementation? Details about building these functions
 
@@ -1306,7 +1486,7 @@ base_specifiction +
   geom_bar() 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
 
 ``` r
 
@@ -1314,7 +1494,7 @@ base_specifiction +
   geom_bar(position = "fill")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-31-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-33-2.png)<!-- -->
 
 ``` r
 
@@ -1326,34 +1506,42 @@ p <- mtcars %>%
 p
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-31-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-33-3.png)<!-- -->
 
 ``` r
 
 p$layers
 #> $geom_bar
-#> geom_bar: just = 0.5, na.rm = FALSE, orientation = NA
-#> stat_count: na.rm = FALSE, orientation = NA
+#> geom_bar: na.rm = FALSE, just = 0.5, lineend = butt, linejoin = mitre
+#> stat_count: na.rm = FALSE
 #> position_stack
 
 p$layers <- NULL # removes all layers specification
 
 p$layers
-#> NULL
+#> $geom_bar
+#> geom_bar: na.rm = FALSE, just = 0.5, lineend = butt, linejoin = mitre
+#> stat_count: na.rm = FALSE
+#> position_stack
 
 r <- p + 
   geom_bar(position = "fill")
 
 r$layers
 #> $geom_bar
-#> geom_bar: just = 0.5, na.rm = FALSE, orientation = NA
-#> stat_count: na.rm = FALSE, orientation = NA
+#> geom_bar: na.rm = FALSE, just = 0.5, lineend = butt, linejoin = mitre
+#> stat_count: na.rm = FALSE
+#> position_stack 
+#> 
+#> $geom_bar...2
+#> geom_bar: na.rm = FALSE, just = 0.5, lineend = butt, linejoin = mitre
+#> stat_count: na.rm = FALSE
 #> position_fill
 
 r
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-31-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-33-4.png)<!-- -->
 
 ``` r
 
@@ -1364,8 +1552,8 @@ q <- mtcars %>%
 
 q$layers
 #> $geom_bar
-#> geom_bar: just = 0.5, na.rm = FALSE, orientation = NA
-#> stat_count: na.rm = FALSE, orientation = NA
+#> geom_bar: na.rm = FALSE, just = 0.5, lineend = butt, linejoin = mitre
+#> stat_count: na.rm = FALSE
 #> position_fill
 ```
 
@@ -1382,7 +1570,7 @@ p <- mtcars %>%
 p
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
 
 ``` r
 
@@ -1391,7 +1579,7 @@ p$layers[[2]] <- NULL # removes second layer specification
 p
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-32-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-2.png)<!-- -->
 
 # put it in a function: `last_plot_wipe`
 
@@ -1426,7 +1614,7 @@ mtcars %>%
   geom_bar()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
 
 ``` r
 
@@ -1434,7 +1622,7 @@ last_plot_wipe() +
   geom_bar(position = "fill")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
 
 ``` r
 
@@ -1442,7 +1630,7 @@ last_plot_wipe() +
   geom_bar(position = "identity")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-3.png)<!-- -->
 
 ``` r
 
@@ -1455,14 +1643,14 @@ mtcars %>%
   stat_count(geom = "label", aes(label = after_stat(count)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-4.png)<!-- -->
 
 ``` r
 
 last_plot_wipe(index = 2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-5.png)<!-- -->
 
 # A convenience function, last_plot_wipe_last
 
@@ -1501,14 +1689,14 @@ mtcars %>%
   stat_count(geom = "label", aes(label = after_stat(count)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 ``` r
 
 last_plot_wipe_last()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-34-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-36-2.png)<!-- -->
 
 # Other work
 
@@ -1533,35 +1721,43 @@ new layer in one step.
 knitrExtra::chunk_names_get()
 #>  [1] "unnamed-chunk-1"     "unnamed-chunk-2"     "unnamed-chunk-3"    
 #>  [4] "data_replace"        "unnamed-chunk-4"     "data_filter"        
-#>  [7] "unnamed-chunk-5"     "unnamed-chunk-6"     "data_slice"         
-#> [10] "unnamed-chunk-7"     "data_slice_max"      "unnamed-chunk-8"    
-#> [13] "unnamed-chunk-9"     "data_slice_sample"   "unnamed-chunk-10"   
-#> [16] "data_arrange"        "unnamed-chunk-11"    "unnamed-chunk-12"   
-#> [19] "unnamed-chunk-13"    "last_plot_data"      "unnamed-chunk-14"   
-#> [22] "unnamed-chunk-15"    "unnamed-chunk-16"    "intercept"          
-#> [25] "unnamed-chunk-17"    "unnamed-chunk-18"    "unnamed-chunk-19"   
-#> [28] "unnamed-chunk-20"    "unnamed-chunk-21"    "unnamed-chunk-22"   
-#> [31] "unnamed-chunk-23"    "facet_across"        "unnamed-chunk-24"   
-#> [34] "unnamed-chunk-25"    "unnamed-chunk-26"    "unnamed-chunk-27"   
-#> [37] "unnamed-chunk-28"    "unnamed-chunk-29"    "unnamed-chunk-30"   
-#> [40] "unnamed-chunk-31"    "unnamed-chunk-32"    "last_plot_wipe"     
-#> [43] "unnamed-chunk-33"    "last_plot_wipe_last" "unnamed-chunk-34"   
-#> [46] "unnamed-chunk-35"    "unnamed-chunk-36"    "unnamed-chunk-37"   
-#> [49] "unnamed-chunk-38"    "unnamed-chunk-39"
+#>  [7] "unnamed-chunk-5"     "data_include"        "unnamed-chunk-6"    
+#> [10] "data_slice"          "unnamed-chunk-7"     "data_slice_max"     
+#> [13] "unnamed-chunk-8"     "unnamed-chunk-9"     "data_slice_sample"  
+#> [16] "unnamed-chunk-10"    "data_arrange"        "unnamed-chunk-11"   
+#> [19] "unnamed-chunk-12"    "unnamed-chunk-13"    "last_plot_data"     
+#> [22] "unnamed-chunk-14"    "data_var_split"      "unnamed-chunk-15"   
+#> [25] "unnamed-chunk-16"    "intercept"           "unnamed-chunk-17"   
+#> [28] "aes_from_data"       "unnamed-chunk-18"    "aes_select"         
+#> [31] "aes_dims"            "unnamed-chunk-19"    "unnamed-chunk-20"   
+#> [34] "unnamed-chunk-21"    "unnamed-chunk-22"    "unnamed-chunk-23"   
+#> [37] "unnamed-chunk-24"    "unnamed-chunk-25"    "facet_across"       
+#> [40] "unnamed-chunk-26"    "unnamed-chunk-27"    "unnamed-chunk-28"   
+#> [43] "unnamed-chunk-29"    "unnamed-chunk-30"    "unnamed-chunk-31"   
+#> [46] "unnamed-chunk-32"    "unnamed-chunk-33"    "unnamed-chunk-34"   
+#> [49] "last_plot_wipe"      "unnamed-chunk-35"    "last_plot_wipe_last"
+#> [52] "unnamed-chunk-36"    "unnamed-chunk-37"    "unnamed-chunk-38"   
+#> [55] "unnamed-chunk-39"    "unnamed-chunk-40"    "unnamed-chunk-41"
 ```
 
 ``` r
-knitrExtra:::chunk_to_r(c("last_plot_wipe", 
+knitrExtra:::chunk_to_r(c(
+                          "last_plot_wipe", 
                          "last_plot_wipe_last",
                          "data_replace",
                          "data_filter",
+                         "data_include",
                          "data_slice",
                          "data_slice_max",
                          "data_slice_sample",
                          "data_arrange",
                          "data_slice_sample",
                          "last_plot_data",
-                         "intercept"))
+                         "intercept",
+                         "data_var_split",
+                         "aes_from_data",
+                         "aes_dims"
+                        ))
 ```
 
 ### Added roxygen skeleton? ✅
@@ -1570,7 +1766,7 @@ for auto documentation and making sure proposed functions are *exported*
 
 ### Managed dependencies ? ✅
 
-package dependancies managed, i.e. `depend::function()` in proposed
+package dependencies managed, i.e. `depend::function()` in proposed
 functions and declared in the DESCRIPTION
 
 ``` r
