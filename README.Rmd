@@ -4,7 +4,6 @@ output:
     toc: TRUE
 ---
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -14,6 +13,8 @@ knitr::opts_chunk$set(
   message = F
 )
 
+
+library(ggplyr)
 library(tidyverse)
 
 ggplot2::theme_set(theme_gray(base_size = 18))
@@ -24,8 +25,11 @@ ggplot2::theme_set(theme_gray(base_size = 18))
 
 https://evamaerey.github.io/mytidytuesday/2024-07-10-ggnewdata/ggnewdata.html
 
+### layers_wipe()
 
-```{r}
+
+```{r layers_wipe}
+#' @export
 layers_wipe <- function(i = NULL) {
 
   structure(
@@ -35,7 +39,9 @@ layers_wipe <- function(i = NULL) {
 
 }
 
-
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
 ggplot_add.layers_wipe <- function(object, plot, object_name) {
   
   if(is.null(object$wipe_which)){
@@ -190,6 +196,7 @@ last_plot() +
   data_unfilter()
 
 ```
+
 
 
 
@@ -1446,6 +1453,68 @@ last_plot_wipe_last()
 
 
 
+```{r aes_default}
+
+#' @export
+aes_default <- function(aes = "x", default = 0) {
+
+  structure(
+    list(aes_spec = aes,
+         default_spec = default), 
+    class = "aes_default"
+    )
+
+}
+
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_default <- function(object, plot, object_name) {
+  
+  plot$mapping[[object$aes_spec]] <- 
+    plot$mapping[[object$aes_spec]] %||% object$default_spec
+
+  plot
+
+}
+```
+
+
+
+```{r}
+chart_point <- function(...){
+  
+  list(
+  geom_point(),
+  aes_default("x", 0),
+  aes_default("y", 0)
+  )
+  
+}
+
+cars |> 
+  ggplot() + 
+  chart_point()
+
+
+```
+
+
+```{r}
+library(ggplot2)
+p <- ggplot() + 
+  aes(x = "hi")
+
+p$mapping$x
+
+p$mapping[["x"]] <- "bye"
+
+```
+
+
+
+
 # Other work
 
 I think the difference is that other work would have you save the ggplot2 object and then manipulate it, where as ggwipe lends itself to printing the ggplot2 object and then retrieving and printing without a new layer in one step.  
@@ -1475,7 +1544,7 @@ knitrExtra::chunk_names_get()
 
 
 ```{r}
-knitrExtra:::chunk_to_r(c(
+knitrExtra:::chunk_to_r(c("layers_wipe",
                           "last_plot_wipe", 
                          "last_plot_wipe_last",
                          "data_replace",
@@ -1514,5 +1583,4 @@ devtools::document()
 devtools::check()
 devtools::install(pkg = ".", upgrade = "never")
 ```
-
 

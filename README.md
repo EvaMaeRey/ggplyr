@@ -1,6 +1,7 @@
 
 - [build functionality using the ggplot_add extension
   mechanism…](#build-functionality-using-the-ggplot_add-extension-mechanism)
+  - [layers_wipe()](#layers_wipe)
   - [data_replace()](#data_replace)
   - [data_filter()](#data_filter)
   - [data_include()](#data_include)
@@ -40,23 +41,28 @@
   last_plot_wipe_last](#a-convenience-function-last_plot_wipe_last)
   - [Try it](#try-it)
 - [Other work](#other-work)
-- [Packaging and documentation 🚧 ✅](#packaging-and-documentation--)
+- [Packaging and documentation 🚧
+  ✅](#packaging-and-documentation-construction-white_check_mark)
   - [minimal requirements for github package. Have
     you:](#minimal-requirements-for-github-package-have-you)
     - [Created files for package archetecture with
       `devtools::create("./ggbarlabs")`
-      ✅](#created-files-for-package-archetecture-with-devtoolscreateggbarlabs-)
-    - [Moved functions R folder? ✅](#moved-functions-r-folder-)
-    - [Added roxygen skeleton? ✅](#added-roxygen-skeleton-)
-    - [Managed dependencies ? ✅](#managed-dependencies--)
-
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+      ✅](#created-files-for-package-archetecture-with-devtoolscreateggbarlabs-white_check_mark)
+    - [Moved functions R folder?
+      ✅](#moved-functions-r-folder-white_check_mark)
+    - [Added roxygen skeleton?
+      ✅](#added-roxygen-skeleton-white_check_mark)
+    - [Managed dependencies ?
+      ✅](#managed-dependencies--white_check_mark)
 
 # build functionality using the ggplot_add extension mechanism…
 
 <https://evamaerey.github.io/mytidytuesday/2024-07-10-ggnewdata/ggnewdata.html>
 
+### layers_wipe()
+
 ``` r
+#' @export
 layers_wipe <- function(i = NULL) {
 
   structure(
@@ -66,7 +72,9 @@ layers_wipe <- function(i = NULL) {
 
 }
 
-
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
 ggplot_add.layers_wipe <- function(object, plot, object_name) {
   
   if(is.null(object$wipe_which)){
@@ -91,7 +99,7 @@ ggplot(mtcars) +
   stat_count(geom = "point")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 
@@ -99,7 +107,7 @@ last_plot() +
   layers_wipe(i = 1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
 ``` r
 
@@ -107,7 +115,7 @@ last_plot() +
   layers_wipe()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-3-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-2-3.png)<!-- -->
 
 ### data_replace()
 
@@ -141,7 +149,7 @@ ggplot(mtcars) +
   geom_bar()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 ``` r
 
@@ -149,7 +157,7 @@ last_plot() +
   data_replace(data = mpg)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
 
 ### data_filter()
 
@@ -222,7 +230,7 @@ ggplot(mtcars) +
   aes(color = factor(cyl))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ``` r
 
@@ -230,7 +238,7 @@ last_plot() +
   data_filter(cyl != 4)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
 
 ``` r
 
@@ -238,7 +246,7 @@ last_plot() +
   data_unfilter()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->
 
 ### data_include()
 
@@ -319,7 +327,7 @@ ggplot(mtcars) +
   aes(color = factor(cyl))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ### data_slice_max()
 
@@ -353,7 +361,7 @@ ggplot(gapminder::gapminder %>% filter(year == 2002)) +
   geom_col() 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
 
@@ -361,7 +369,7 @@ last_plot() +
   data_slice_max(pop)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
 
 ``` r
 
@@ -369,7 +377,7 @@ last_plot() +
   data_slice_max(pop, n = 3)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-7-3.png)<!-- -->
 
 ``` r
 
@@ -440,7 +448,7 @@ gapminder::gapminder |>
   geom_line()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 
@@ -453,7 +461,7 @@ tidytitanic::tidy_titanic |>
   geom_bar()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
 
 ``` r
 
@@ -495,7 +503,7 @@ tidytitanic::tidy_titanic |>
   data_slice_top_summarized(class, n = 2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->
 
 ``` r
 
@@ -506,7 +514,7 @@ gapminder::gapminder |>
   data_slice_top_summarized(country, pop, n = 5, fun = mean)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-4.png)<!-- -->
 
 ## data_slice_sample()
 
@@ -539,7 +547,7 @@ ggplot(diamonds) +
   data_slice_sample(n = 300)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ``` r
 
@@ -548,7 +556,7 @@ last_plot() +
   aes(color = color)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
 
 ## data_arrange()
 
@@ -578,7 +586,7 @@ ggplot(mtcars) +
   aes(color = fct_inorder(factor(cyl))) 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ``` r
 
@@ -586,7 +594,7 @@ last_plot() +
   data_arrange(- cyl)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
 
 ## data_mutate()
 
@@ -635,7 +643,7 @@ ggplot(mtcars) +
   aes(color = wt_times_mpg)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 ## last_plot_data()
 
@@ -737,7 +745,7 @@ data.frame(selected_fruit =
   geom_bar()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ``` r
 
@@ -746,7 +754,7 @@ last_plot() +
   scale_x_discrete(drop = F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->
 
 ## data_nest
 
@@ -813,7 +821,7 @@ diamonds |>
   geom_bar()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
 
@@ -821,7 +829,7 @@ last_plot() +
   data_nest(.by = cut)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
 
 ``` r
 
@@ -829,7 +837,7 @@ last_plot() +
   data_unnest()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->
 
 ``` r
 
@@ -1092,7 +1100,7 @@ ggplot(cars) +
   scale_y_continuous(limits = c(0,25))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 ``` r
 last_plot() + 
@@ -1236,7 +1244,7 @@ ggplot() +
   facet_wrap(~name)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 ``` r
 #' @export
@@ -1360,6 +1368,7 @@ last_plot() +
 # {ggwipe}: print the last plot and remove stat/geom/annotate layers in one step
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 In general ggplot2 lets you work in very fluidly, including ‘undoing’
@@ -1383,6 +1392,7 @@ presentation or further manipulation.
 ``` r
 library(tidyverse, warn.conflicts = F)
 library(ggwipe)
+#> Error in library(ggwipe): there is no package called 'ggwipe'
 mtcars %>% 
   ggplot() + 
   aes(am, fill = factor(vs)) +
@@ -1394,7 +1404,7 @@ last_plot_wipe() +
   labs(tag = "Plot 2")
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-29-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-29-2.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-28-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-28-2.png" width="49%" />
 
 ``` r
 mtcars %>% 
@@ -1439,7 +1449,7 @@ last_plot_wipe() +
 #> ! `stat_count()` must only have an x or y aesthetic.
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-30-1.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-29-1.png" width="49%" />
 
 ## You can specify the specific layer, with the `index = n` argument
 
@@ -1453,7 +1463,7 @@ ggplot(data = cars) +
 last_plot_wipe(index = 1)  # removes rug
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-31-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-31-2.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-30-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-30-2.png" width="49%" />
 
 ## You can also use it for backtracking - removing the most recent layer with `last_plot_wipe_last()`.
 
@@ -1471,7 +1481,7 @@ last_plot_wipe_last()
 last_plot_wipe_last()
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-32-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-32-2.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-32-3.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-32-4.png" width="49%" />
+<img src="README_files/figure-gfm/unnamed-chunk-31-1.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-31-2.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-31-3.png" width="49%" /><img src="README_files/figure-gfm/unnamed-chunk-31-4.png" width="49%" />
 
 # Curious about implementation? Details about building these functions
 
@@ -1486,7 +1496,7 @@ base_specifiction +
   geom_bar() 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
 ``` r
 
@@ -1494,7 +1504,7 @@ base_specifiction +
   geom_bar(position = "fill")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-32-2.png)<!-- -->
 
 ``` r
 
@@ -1506,7 +1516,7 @@ p <- mtcars %>%
 p
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-32-3.png)<!-- -->
 
 ``` r
 
@@ -1541,7 +1551,7 @@ r$layers
 r
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-32-4.png)<!-- -->
 
 ``` r
 
@@ -1570,7 +1580,7 @@ p <- mtcars %>%
 p
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
 
 ``` r
 
@@ -1579,7 +1589,7 @@ p$layers[[2]] <- NULL # removes second layer specification
 p
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-34-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-33-2.png)<!-- -->
 
 # put it in a function: `last_plot_wipe`
 
@@ -1614,7 +1624,7 @@ mtcars %>%
   geom_bar()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
 
 ``` r
 
@@ -1622,7 +1632,7 @@ last_plot_wipe() +
   geom_bar(position = "fill")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-2.png)<!-- -->
 
 ``` r
 
@@ -1630,7 +1640,7 @@ last_plot_wipe() +
   geom_bar(position = "identity")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-3.png)<!-- -->
 
 ``` r
 
@@ -1643,14 +1653,14 @@ mtcars %>%
   stat_count(geom = "label", aes(label = after_stat(count)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-4.png)<!-- -->
 
 ``` r
 
 last_plot_wipe(index = 2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-5.png)<!-- -->
 
 # A convenience function, last_plot_wipe_last
 
@@ -1689,14 +1699,70 @@ mtcars %>%
   stat_count(geom = "label", aes(label = after_stat(count)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
 
 ``` r
 
 last_plot_wipe_last()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-36-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
+
+``` r
+
+#' @export
+aes_default <- function(aes = "x", default = 0) {
+
+  structure(
+    list(aes_spec = aes,
+         default_spec = default), 
+    class = "aes_default"
+    )
+
+}
+
+
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot_add
+#' @export
+ggplot_add.aes_default <- function(object, plot, object_name) {
+  
+  plot$mapping[[object$aes_spec]] <- 
+    plot$mapping[[object$aes_spec]] %||% object$default_spec
+
+  plot
+
+}
+```
+
+``` r
+chart_point <- function(...){
+  
+  list(
+  geom_point(),
+  aes_default("x", 0),
+  aes_default("y", 0)
+  )
+  
+}
+
+cars |> 
+  ggplot() + 
+  chart_point()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+
+``` r
+library(ggplot2)
+p <- ggplot() + 
+  aes(x = "hi")
+
+p$mapping$x
+#> [1] "hi"
+
+p$mapping[["x"]] <- "bye"
+```
 
 # Other work
 
@@ -1719,29 +1785,30 @@ new layer in one step.
 
 ``` r
 knitrExtra::chunk_names_get()
-#>  [1] "unnamed-chunk-1"     "unnamed-chunk-2"     "unnamed-chunk-3"    
-#>  [4] "data_replace"        "unnamed-chunk-4"     "data_filter"        
-#>  [7] "unnamed-chunk-5"     "data_include"        "unnamed-chunk-6"    
-#> [10] "data_slice"          "unnamed-chunk-7"     "data_slice_max"     
-#> [13] "unnamed-chunk-8"     "unnamed-chunk-9"     "data_slice_sample"  
-#> [16] "unnamed-chunk-10"    "data_arrange"        "unnamed-chunk-11"   
-#> [19] "unnamed-chunk-12"    "unnamed-chunk-13"    "last_plot_data"     
-#> [22] "unnamed-chunk-14"    "data_var_split"      "unnamed-chunk-15"   
-#> [25] "unnamed-chunk-16"    "intercept"           "unnamed-chunk-17"   
-#> [28] "aes_from_data"       "unnamed-chunk-18"    "aes_select"         
-#> [31] "aes_dims"            "unnamed-chunk-19"    "unnamed-chunk-20"   
-#> [34] "unnamed-chunk-21"    "unnamed-chunk-22"    "unnamed-chunk-23"   
-#> [37] "unnamed-chunk-24"    "unnamed-chunk-25"    "facet_across"       
-#> [40] "unnamed-chunk-26"    "unnamed-chunk-27"    "unnamed-chunk-28"   
-#> [43] "unnamed-chunk-29"    "unnamed-chunk-30"    "unnamed-chunk-31"   
-#> [46] "unnamed-chunk-32"    "unnamed-chunk-33"    "unnamed-chunk-34"   
-#> [49] "last_plot_wipe"      "unnamed-chunk-35"    "last_plot_wipe_last"
-#> [52] "unnamed-chunk-36"    "unnamed-chunk-37"    "unnamed-chunk-38"   
-#> [55] "unnamed-chunk-39"    "unnamed-chunk-40"    "unnamed-chunk-41"
+#>  [1] "unnamed-chunk-1"     "layers_wipe"         "unnamed-chunk-2"    
+#>  [4] "data_replace"        "unnamed-chunk-3"     "data_filter"        
+#>  [7] "unnamed-chunk-4"     "data_include"        "unnamed-chunk-5"    
+#> [10] "data_slice"          "unnamed-chunk-6"     "data_slice_max"     
+#> [13] "unnamed-chunk-7"     "unnamed-chunk-8"     "data_slice_sample"  
+#> [16] "unnamed-chunk-9"     "data_arrange"        "unnamed-chunk-10"   
+#> [19] "unnamed-chunk-11"    "unnamed-chunk-12"    "last_plot_data"     
+#> [22] "unnamed-chunk-13"    "data_var_split"      "unnamed-chunk-14"   
+#> [25] "unnamed-chunk-15"    "intercept"           "unnamed-chunk-16"   
+#> [28] "aes_from_data"       "unnamed-chunk-17"    "aes_select"         
+#> [31] "aes_dims"            "unnamed-chunk-18"    "unnamed-chunk-19"   
+#> [34] "unnamed-chunk-20"    "unnamed-chunk-21"    "unnamed-chunk-22"   
+#> [37] "unnamed-chunk-23"    "unnamed-chunk-24"    "facet_across"       
+#> [40] "unnamed-chunk-25"    "unnamed-chunk-26"    "unnamed-chunk-27"   
+#> [43] "unnamed-chunk-28"    "unnamed-chunk-29"    "unnamed-chunk-30"   
+#> [46] "unnamed-chunk-31"    "unnamed-chunk-32"    "unnamed-chunk-33"   
+#> [49] "last_plot_wipe"      "unnamed-chunk-34"    "last_plot_wipe_last"
+#> [52] "unnamed-chunk-35"    "aes_default"         "unnamed-chunk-36"   
+#> [55] "unnamed-chunk-37"    "unnamed-chunk-38"    "unnamed-chunk-39"   
+#> [58] "unnamed-chunk-40"    "unnamed-chunk-41"    "unnamed-chunk-42"
 ```
 
 ``` r
-knitrExtra:::chunk_to_r(c(
+knitrExtra:::chunk_to_r(c("layers_wipe",
                           "last_plot_wipe", 
                          "last_plot_wipe_last",
                          "data_replace",
